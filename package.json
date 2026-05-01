@@ -1,7 +1,5 @@
 {
   "name": "studyhub",
   "version": "2.0.0",
-  "description": "Portal de estudio universitario con IA",
-  "private": true,
-  "engines": { "node": ">=18" }
+  "private": true
 }

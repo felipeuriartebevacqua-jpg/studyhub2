@@ -5,7 +5,7 @@
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 const MAX_TEXT_CHARS = 80000; // ~20k tokens, bien dentro del free tier
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // CORS — solo permite requests desde tu propio dominio de Vercel
   const origin = req.headers.origin || '';
   res.setHeader('Access-Control-Allow-Origin', origin || '*');

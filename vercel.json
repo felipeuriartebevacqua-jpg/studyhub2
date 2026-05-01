@@ -1,7 +1,6 @@
 {
-  "version": 2,
-  "routes": [
-    { "src": "/api/ai", "dest": "/api/ai.js" },
-    { "src": "/(.*)", "dest": "/index.html" }
+  "rewrites": [
+    { "source": "/api/ai", "destination": "/api/ai" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

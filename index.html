@@ -248,6 +248,146 @@ html.light svg text{fill:#1A1A2E !important;}
 .concept-item{padding:0.85rem;background:var(--surface);border-radius:10px;margin-bottom:0.5rem;border:1px solid var(--border);cursor:pointer;transition:border-color 0.2s,background 0.2s;}
 .concept-item:hover{border-color:rgba(159,122,234,0.4);background:rgba(159,122,234,0.05);}
 
+
+/* ─── STUDY MODE ─────────────────────────────── */
+.material-check {
+  width:18px; height:18px; accent-color:var(--gold);
+  cursor:pointer; flex-shrink:0; margin-right:0.25rem;
+}
+.material-item.selected {
+  border-color:rgba(212,168,83,0.4);
+  background:rgba(212,168,83,0.05);
+}
+.study-bar {
+  position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%);
+  background:var(--card); border:1px solid var(--gold);
+  border-radius:16px; padding:0.75rem 1.25rem;
+  display:none; align-items:center; gap:1rem;
+  z-index:500; box-shadow:0 8px 32px rgba(0,0,0,0.4);
+  max-width:480px; width:90%;
+  animation:slideUp 0.2s ease;
+}
+.study-bar.visible { display:flex; }
+.study-bar-info { flex:1; }
+.study-bar-count { font-size:0.9rem; font-weight:500; color:var(--gold); }
+.study-bar-sub { font-size:0.75rem; color:var(--muted); }
+.btn-study {
+  padding:0.55rem 1.1rem; background:var(--gold); color:#0B0F1A;
+  border:none; border-radius:10px; font-family:'DM Sans',sans-serif;
+  font-size:0.85rem; font-weight:600; cursor:pointer;
+  transition:background 0.2s; white-space:nowrap;
+}
+.btn-study:hover { background:var(--gold-light); }
+.btn-clear-sel { background:none; border:none; color:var(--muted); cursor:pointer; font-size:0.85rem; }
+
+/* Study screen */
+#screen-study { min-height:100vh; display:none; }
+#screen-study.active { display:block; }
+.study-header {
+  background:var(--card); border-bottom:1px solid var(--border);
+  padding:1rem 2rem; display:flex; align-items:center; gap:1rem;
+}
+.study-header h2 { font-size:1.1rem; font-weight:500; flex:1; }
+.study-files-chips {
+  display:flex; flex-wrap:wrap; gap:0.4rem;
+  padding:0.75rem 1.5rem; background:var(--surface);
+  border-bottom:1px solid var(--border);
+}
+.file-chip {
+  padding:0.2rem 0.65rem; background:var(--gold-dim);
+  border:1px solid rgba(212,168,83,0.25); border-radius:20px;
+  font-size:0.72rem; color:var(--gold);
+}
+.study-tabs {
+  display:flex; gap:0; border-bottom:2px solid var(--border);
+  background:var(--card);
+}
+.study-tab {
+  flex:1; padding:1rem; border:none; background:none;
+  font-family:'DM Sans',sans-serif; font-size:0.875rem;
+  color:var(--muted); cursor:pointer; border-bottom:3px solid transparent;
+  margin-bottom:-2px; transition:all 0.15s; text-align:center;
+}
+.study-tab.active { color:var(--gold); border-bottom-color:var(--gold); background:var(--surface); }
+.study-tab-panel { display:none; max-width:800px; margin:0 auto; padding:1.5rem; }
+.study-tab-panel.active { display:block; }
+
+/* Leitner boxes */
+.leitner-header {
+  display:flex; gap:1rem; margin-bottom:1.5rem; flex-wrap:wrap;
+}
+.leitner-box {
+  flex:1; min-width:140px; padding:1rem; border-radius:var(--r);
+  border:2px solid; text-align:center; cursor:pointer;
+  transition:all 0.2s;
+}
+.leitner-box.new { border-color:var(--blue); background:var(--blue-dim); }
+.leitner-box.learning { border-color:var(--warning); background:rgba(236,201,75,0.08); }
+.leitner-box.learned { border-color:var(--success); background:rgba(72,187,120,0.08); }
+.leitner-box.active-box { transform:scale(1.03); box-shadow:0 4px 16px rgba(0,0,0,0.3); }
+.leitner-count { font-size:1.8rem; font-weight:700; font-family:'Playfair Display',serif; }
+.leitner-label { font-size:0.75rem; margin-top:0.2rem; }
+.leitner-box.new .leitner-count { color:var(--blue); }
+.leitner-box.learning .leitner-count { color:var(--warning); }
+.leitner-box.learned .leitner-count { color:var(--success); }
+
+/* Flashcard study view */
+.fc-study-wrap { text-align:center; }
+.fc-study-card {
+  background:var(--card); border:2px solid var(--border);
+  border-radius:20px; padding:2.5rem 2rem; min-height:200px;
+  display:flex; align-items:center; justify-content:center;
+  flex-direction:column; cursor:pointer; transition:all 0.15s;
+  margin-bottom:1.25rem; position:relative;
+}
+.fc-study-card:hover { border-color:var(--border-md); }
+.fc-study-card.flipped { border-color:rgba(159,122,234,0.4); background:rgba(159,122,234,0.05); }
+.fc-study-front { font-size:1.1rem; font-weight:500; color:var(--text); line-height:1.5; }
+.fc-study-back { font-size:0.95rem; color:var(--muted); line-height:1.65; margin-top:1rem; display:none; }
+.fc-study-card.flipped .fc-study-back { display:block; }
+.fc-study-card.flipped .fc-study-front { color:#B794F4; }
+.fc-study-hint { font-size:0.75rem; color:var(--muted); margin-top:0.75rem; }
+.fc-actions { display:flex; gap:0.75rem; justify-content:center; margin-top:0.5rem; }
+.fc-action-btn {
+  padding:0.65rem 1.5rem; border:none; border-radius:12px;
+  font-family:'DM Sans',sans-serif; font-size:0.875rem; font-weight:500;
+  cursor:pointer; transition:all 0.15s;
+}
+.fc-action-btn.no { background:rgba(252,129,129,0.15); color:var(--error); border:1px solid rgba(252,129,129,0.3); }
+.fc-action-btn.yes { background:rgba(72,187,120,0.15); color:var(--success); border:1px solid rgba(72,187,120,0.3); }
+.fc-action-btn.no:hover { background:rgba(252,129,129,0.3); }
+.fc-action-btn.yes:hover { background:rgba(72,187,120,0.3); }
+.fc-progress {
+  font-size:0.8rem; color:var(--muted); text-align:center; margin-bottom:1rem;
+}
+.fc-progress-bar-wrap { background:var(--border); border-radius:4px; height:4px; margin-bottom:1.5rem; }
+.fc-progress-bar { background:var(--gold); border-radius:4px; height:4px; transition:width 0.3s; }
+
+/* Plan de estudio */
+.plan-section { margin-bottom:1.5rem; }
+.plan-day {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:var(--r); padding:1.25rem; margin-bottom:0.75rem;
+}
+.plan-day-header {
+  display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem;
+}
+.plan-day-num {
+  width:32px; height:32px; background:var(--gold-dim);
+  border:1px solid rgba(212,168,83,0.3); border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.8rem; font-weight:600; color:var(--gold); flex-shrink:0;
+}
+.plan-day-title { font-size:0.9rem; font-weight:500; }
+.plan-day-sub { font-size:0.75rem; color:var(--muted); }
+.plan-item { 
+  display:flex; align-items:center; gap:0.6rem;
+  padding:0.4rem 0; font-size:0.83rem; border-bottom:1px solid var(--border);
+}
+.plan-item:last-child { border-bottom:none; }
+.plan-item input[type=checkbox] { accent-color:var(--gold); width:15px; height:15px; }
+.plan-item label { cursor:pointer; color:var(--text); }
+
 /* ANIMATIONS */
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -767,7 +907,8 @@ function renderModItem(mod){
   const safeFilename=filename.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   const safeName=(mod.name||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   if(isFile&&rawFileUrl){
-    return`<div class="material-item"><div class="material-icon ${cls}">${icon}</div><div class="material-info"><div class="material-name">${escHtml(mod.name)}</div><div class="material-type">${modTypeName(mod.modname)} · ${escHtml(filename)}</div></div><div style="display:flex;gap:0.4rem;"><button class="dl-btn" id="${uid}" onclick="downloadFile(document.getElementById('${uid}'),'${safeRaw}','${safeFilename}')">⬇</button>${isAiable(filename)?`<button class="ai-btn" onclick="openAiModal('${safeRaw}','${safeName}','${safeFilename}')">✨ IA</button>`:''}</div></div>`;
+    const cbId='cb_'+uid;
+    return`<div class="material-item" id="item_${uid}"><input type="checkbox" class="material-check" id="${cbId}" onchange="toggleFileSelect(this,'${safeRaw}','${safeName}','${safeFilename}');document.getElementById('item_${uid}').classList.toggle('selected',this.checked)"><div class="material-icon ${cls}">${icon}</div><div class="material-info"><div class="material-name">${escHtml(mod.name)}</div><div class="material-type">${modTypeName(mod.modname)} · ${escHtml(filename)}</div></div><div style="display:flex;gap:0.4rem;"><button class="dl-btn" id="${uid}" onclick="downloadFile(document.getElementById('${uid}'),'${safeRaw}','${safeFilename}')">⬇</button>${isAiable(filename)?`<button class="ai-btn" onclick="openAiModal('${safeRaw}','${safeName}','${safeFilename}')">✨ IA</button>`:''}</div></div>`;
   }
   return`<div class="material-item is-link" onclick="window.open('${escHtml(linkUrl)}','_blank')"><div class="material-icon ${cls}">${icon}</div><div class="material-info"><div class="material-name">${escHtml(mod.name)}</div><div class="material-type">${modTypeName(mod.modname)}</div></div><span style="color:var(--muted);font-size:0.8rem;">↗</span></div>`;
 }
@@ -981,17 +1122,32 @@ async function callAiProxy(mode, term) {
   if (isVercelDeploy()) {
     const body = { text, mode };
     if(term) body.term = term;
-    const res = await fetch('/api/ai', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(body)
-    });
-    if(!res.ok) {
-      const err = await res.json().catch(()=>({}));
-      throw new Error(err.error || 'Error del servidor ('+res.status+'). Verificá que la GEMINI_API_KEY esté configurada en Vercel.');
+    // Try relative URL first, then absolute (handles some Vercel routing issues)
+    const urls = ['/api/ai', location.origin + '/api/ai'];
+    let lastErr = '';
+    for (const apiUrl of urls) {
+      try {
+        const res = await fetch(apiUrl, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(body)
+        });
+        if(res.status === 404) { lastErr = 'Función /api/ai no encontrada (404)'; continue; }
+        if(!res.ok) {
+          const err = await res.json().catch(()=>({}));
+          throw new Error(err.error || 'Error '+res.status+': '+JSON.stringify(err));
+        }
+        const data = await res.json();
+        if(data.error) throw new Error(data.error);
+        return data.result || '';
+      } catch(e) {
+        if(e.message.includes('404')) { lastErr = e.message; continue; }
+        throw e;
+      }
     }
-    const data = await res.json();
-    return data.result || '';
+    // Both URLs failed — fallback to local AI
+    console.warn('Gemini proxy not available, falling back to local AI. Last error:', lastErr);
+    document.getElementById('ai-status-text').textContent = '⚠ Gemini no disponible — usando IA local';
   }
 
   // ── If local (file:// or localhost): use local AI engine ──
@@ -1237,6 +1393,279 @@ function showTokenHelp(){const el=document.getElementById('token-help');el.style
 function truncate(str,n){if(!str)return'';return str.length>n?str.slice(0,n)+'…':str;}
 function escHtml(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function stripHtml(html){if(!html)return'';return html.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();}
+
+// ══════════════════════════════════════════
+//  MULTI-FILE STUDY MODE
+// ══════════════════════════════════════════
+let selectedFiles = []; // [{name, rawUrl, filename}]
+let studyData = { flashcards:[], quiz:[], plan:'' };
+let leitner = { new:[], learning:[], learned:[] };
+let currentDeck = 'new';
+let currentCardIdx = 0;
+let cardFlipped = false;
+
+// ── Selection ────────────────────────────────────────────────────
+function toggleFileSelect(checkbox, rawUrl, name, filename) {
+  if(checkbox.checked) {
+    selectedFiles.push({name, rawUrl, filename});
+  } else {
+    selectedFiles = selectedFiles.filter(f => f.rawUrl !== rawUrl);
+  }
+  updateStudyBar();
+}
+
+function updateStudyBar() {
+  const bar = document.getElementById('study-bar');
+  const n = selectedFiles.length;
+  if(n === 0) { bar.classList.remove('visible'); return; }
+  bar.classList.add('visible');
+  document.getElementById('study-bar-count').textContent = n + ' archivo' + (n>1?'s':'') + ' seleccionado' + (n>1?'s':'');
+}
+
+function clearSelection() {
+  selectedFiles = [];
+  document.querySelectorAll('.material-check').forEach(cb => { cb.checked=false; });
+  document.querySelectorAll('.material-item').forEach(el => el.classList.remove('selected'));
+  updateStudyBar();
+}
+
+// ── Open Study Mode ──────────────────────────────────────────────
+async function openStudyMode() {
+  if(!selectedFiles.length) return;
+  showScreen('study');
+  // Show file chips
+  document.getElementById('study-files-chips').innerHTML = selectedFiles.map(f =>
+    '<span class="file-chip">📄 '+escHtml(truncate(f.name,30))+'</span>'
+  ).join('');
+  // Init leitner
+  leitner = { new:[], learning:[], learned:[] };
+  studyData = { flashcards:[], quiz:[], plan:'' };
+  updateLeitnerUI();
+  // Generate content
+  generateStudyContent();
+}
+
+function closeStudyMode() {
+  showScreen('course');
+}
+
+function switchStudyTab(name, btn) {
+  document.querySelectorAll('.study-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.study-tab-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('study-tab-'+name).classList.add('active');
+}
+
+// ── Extract text from multiple files ────────────────────────────
+async function extractMultipleTexts() {
+  const texts = [];
+  for(const file of selectedFiles) {
+    try {
+      const fileUrl = moodleFileUrl(file.rawUrl);
+      const ext = file.filename.split('.').pop().toLowerCase();
+      let blob = null;
+      const srcs = [fileUrl, 'https://corsproxy.io/?'+fileUrl];
+      for(const src of srcs) {
+        try { const r=await fetch(src); if(r.ok){blob=await r.blob();break;} } catch(e){}
+      }
+      if(!blob) continue;
+      let text = '';
+      if(ext === 'pdf') {
+        const eng = new StudyAI(); await eng.loadPDF(blob); text = eng.text;
+      } else { text = await blob.text(); }
+      if(text.trim().length > 50) texts.push({ name:file.name, text });
+    } catch(e) { console.warn('Could not load', file.name, e); }
+  }
+  return texts;
+}
+
+async function generateStudyContent() {
+  const fcArea = document.getElementById('fc-study-area');
+  const qArea = document.getElementById('quiz-study-area');
+  const pArea = document.getElementById('plan-study-area');
+  fcArea.innerHTML = '<div class="empty-state"><div class="icon"><div class="spinner" style="width:1.5rem;height:1.5rem;border-width:2px;margin:0 auto;"></div></div><p>Extrayendo texto de los archivos…</p></div>';
+
+  const texts = await extractMultipleTexts();
+  if(!texts.length) {
+    fcArea.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>No se pudo extraer texto. Asegurate de tener conexión y que los archivos sean PDFs o texto.</p></div>';
+    return;
+  }
+
+  const sep = '==='; const combined = texts.map(function(t){return sep+' '+t.name+' '+sep+' '+t.text;}).join(' ');
+  fcArea.innerHTML = '<div class="empty-state"><div class="icon"><div class="spinner" style="width:1.5rem;height:1.5rem;border-width:2px;margin:0 auto;"></div></div><p>Generando flashcards con IA…</p></div>';
+  qArea.innerHTML = '<div class="empty-state"><div class="icon">⏳</div><p>Esperando…</p></div>';
+  pArea.innerHTML = '<div class="empty-state"><div class="icon">⏳</div><p>Esperando…</p></div>';
+
+  // Generate flashcards
+  try {
+    const fcResult = await callStudyProxy('flashcards', combined, texts.length);
+    let cards = [];
+    try { cards = JSON.parse(fcResult.replace(/```json|```/g,'').trim()); } catch(e) {
+      const m = fcResult.match(/\[[\s\S]*\]/); if(m) try{cards=JSON.parse(m[0]);}catch(e2){}
+    }
+    studyData.flashcards = cards;
+    leitner.new = cards.map((c,i) => i); // all start in "new"
+    leitner.learning = []; leitner.learned = [];
+    updateLeitnerUI();
+    renderLeitnerDeck('new');
+  } catch(e) {
+    fcArea.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>'+escHtml(e.message)+'</p></div>';
+  }
+
+  // Generate quiz
+  qArea.innerHTML = '<div class="empty-state"><div class="icon"><div class="spinner" style="width:1.5rem;height:1.5rem;border-width:2px;margin:0 auto;"></div></div><p>Generando cuestionario…</p></div>';
+  try {
+    const qResult = await callStudyProxy('quiz', combined, texts.length);
+    let qs = [];
+    try { qs = JSON.parse(qResult.replace(/```json|```/g,'').trim()); } catch(e) {
+      const m = qResult.match(/\[[\s\S]*\]/); if(m) try{qs=JSON.parse(m[0]);}catch(e2){}
+    }
+    studyData.quiz = qs;
+    renderStudyQuiz(qs);
+  } catch(e) {
+    qArea.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>'+escHtml(e.message)+'</p></div>';
+  }
+
+  // Generate study plan
+  pArea.innerHTML = '<div class="empty-state"><div class="icon"><div class="spinner" style="width:1.5rem;height:1.5rem;border-width:2px;margin:0 auto;"></div></div><p>Generando plan…</p></div>';
+  try {
+    const planResult = await callStudyProxy('plan', combined, texts.length);
+    studyData.plan = planResult;
+    renderStudyPlan(planResult, texts);
+  } catch(e) {
+    pArea.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>'+escHtml(e.message)+'</p></div>';
+  }
+}
+
+async function callStudyProxy(mode, combinedText, fileCount) {
+  const isVercel = isVercelDeploy();
+  if(isVercel) {
+    const res = await fetch('/api/ai', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ text: combinedText, mode, multiFile:true, fileCount })
+    });
+    if(!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e.error||'Error '+res.status); }
+    const d = await res.json(); return d.result || '';
+  }
+  // Local fallback
+  const engine = new StudyAI(); engine.loadText(combinedText);
+  if(mode==='flashcards') return JSON.stringify(engine.generateFlashcards(Math.min(6*fileCount,20)));
+  if(mode==='quiz') return JSON.stringify(engine.generateQuiz(Math.min(4*fileCount,12)));
+  return 'Plan de estudio local — desplegá en Vercel para usar Gemini.';
+}
+
+function regenerateStudy() { generateStudyContent(); }
+
+// ── Leitner System ────────────────────────────────────────────────
+function updateLeitnerUI() {
+  document.getElementById('lcount-new').textContent = leitner.new.length;
+  document.getElementById('lcount-learning').textContent = leitner.learning.length;
+  document.getElementById('lcount-learned').textContent = leitner.learned.length;
+}
+
+function startLeitnerBox(box) {
+  currentDeck = box;
+  currentCardIdx = 0; cardFlipped = false;
+  document.querySelectorAll('.leitner-box').forEach(b=>b.classList.remove('active-box'));
+  document.getElementById('lbox-'+box).classList.add('active-box');
+  renderLeitnerDeck(box);
+}
+
+function renderLeitnerDeck(box) {
+  const area = document.getElementById('fc-study-area');
+  const deck = leitner[box];
+  if(!deck.length) {
+    area.innerHTML = '<div class="empty-state"><div class="icon">'+(box==='learned'?'🎉':'📭')+'</div><p>'+(box==='learned'?'¡Todas aprendidas! Excelente trabajo.':'No hay tarjetas en esta caja.')+'</p></div>';
+    return;
+  }
+  showStudyCard(deck, 0);
+}
+
+function showStudyCard(deck, idx) {
+  if(idx >= deck.length) { renderLeitnerDeck(currentDeck); return; }
+  const area = document.getElementById('fc-study-area');
+  const cardIdx = deck[idx];
+  const card = studyData.flashcards[cardIdx];
+  if(!card) return;
+  const total = deck.length;
+  const pct = Math.round(idx/total*100);
+  area.innerHTML = 
+    '<div class="fc-study-wrap">'+
+    '<div class="fc-progress">Tarjeta '+(idx+1)+' de '+total+'</div>'+
+    '<div class="fc-progress-bar-wrap"><div class="fc-progress-bar" style="width:'+pct+'%"></div></div>'+
+    '<div class="fc-study-card" id="study-card" onclick="flipStudyCard()">'+
+      '<div class="fc-study-front">'+escHtml(card.front)+'</div>'+
+      '<div class="fc-study-back">'+escHtml(card.back)+'</div>'+
+      '<div class="fc-study-hint">Tap para ver la respuesta</div>'+
+    '</div>'+
+    '<div class="fc-actions" id="fc-actions" style="display:none">'+
+      '<button class="fc-action-btn no" onclick="markCard('+cardIdx+','+idx+',false)">✗ No la sabía</button>'+
+      '<button class="fc-action-btn yes" onclick="markCard('+cardIdx+','+idx+',true)">✓ La sabía</button>'+
+    '</div>'+
+    '</div>';
+  currentCardIdx = idx;
+}
+
+function flipStudyCard() {
+  const card = document.getElementById('study-card');
+  if(!card) return;
+  card.classList.add('flipped');
+  document.getElementById('fc-actions').style.display='flex';
+}
+
+function markCard(cardIdx, deckIdx, knew) {
+  // Remove from current deck
+  leitner[currentDeck] = leitner[currentDeck].filter(i=>i!==cardIdx);
+  if(knew) {
+    // Move up: new→learning, learning→learned, learned→learned
+    if(currentDeck==='new') leitner.learning.push(cardIdx);
+    else leitner.learned.push(cardIdx);
+  } else {
+    // Move back: always to new if wrong
+    if(currentDeck!=='new') leitner.new.push(cardIdx);
+    else leitner.new.push(cardIdx); // stays in new
+  }
+  updateLeitnerUI();
+  // Show next card
+  const nextDeck = leitner[currentDeck];
+  if(!nextDeck.length) { renderLeitnerDeck(currentDeck); return; }
+  const nextIdx = Math.min(deckIdx, nextDeck.length-1);
+  showStudyCard(nextDeck, nextIdx);
+}
+
+// ── Quiz render ───────────────────────────────────────────────────
+function renderStudyQuiz(qs) {
+  const area = document.getElementById('quiz-study-area');
+  if(!qs.length){area.innerHTML='<div class="empty-state"><div class="icon">😕</div><p>No se generaron preguntas.</p></div>';return;}
+  const parts=['<div style="margin-bottom:0.5rem;font-size:0.875rem;font-weight:500;">'+qs.length+' preguntas de opción múltiple</div>'];
+  qs.forEach(function(q,qi){
+    const exp=q.explanation||'';
+    const opts=q.opts.map(function(opt,oi){
+      return '<button class="quiz-opt" onclick="answerQuiz('+qi+','+oi+','+q.ans+',this)">'+escHtml(opt)+'</button>';
+    }).join('');
+    parts.push('<div class="quiz-q" id="sqq'+qi+'"><div class="quiz-q-text">'+escHtml((qi+1)+'. '+q.q)+'</div><div class="quiz-opts">'+opts+'</div><div id="sexp'+qi+'" data-exp="'+escHtml(exp)+'" style="display:none;margin-top:0.5rem;font-size:0.78rem;color:var(--success);padding:0.4rem 0.7rem;background:rgba(72,187,120,0.07);border-radius:6px;border:1px solid rgba(72,187,120,0.2);"></div></div>');
+  });
+  area.innerHTML = parts.join('');
+}
+
+function answerStudyQuiz(qi,chosen,correct,btn) {
+  const qEl=document.getElementById('sqq'+qi);
+  qEl.querySelectorAll('.quiz-opt').forEach(function(o,i){
+    o.disabled=true;
+    if(i===correct) o.classList.add('correct');
+    else if(i===chosen) o.classList.add('wrong');
+  });
+  const expEl=document.getElementById('sexp'+qi);
+  if(expEl&&expEl.dataset.exp){expEl.textContent=expEl.dataset.exp;expEl.style.display='block';}
+}
+
+// ── Study Plan render ─────────────────────────────────────────────
+function renderStudyPlan(text, texts) {
+  const area = document.getElementById('plan-study-area');
+  // Try to parse structured plan or just render as markdown
+  area.innerHTML = '<div class="plan-section"><div class="ai-text">'+renderMarkdown(text)+'</div></div>';
+}
+
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
@@ -1818,5 +2247,66 @@ window.scheduleDeadlineChecks = scheduleDeadlineChecks;
 window.showInstallPrompt = showInstallPrompt;
 
 </script>
+
+<!-- STUDY BAR -->
+<div class="study-bar" id="study-bar">
+  <div class="study-bar-info">
+    <div class="study-bar-count" id="study-bar-count">0 archivos seleccionados</div>
+    <div class="study-bar-sub">Listo para estudiar</div>
+  </div>
+  <button class="btn-clear-sel" onclick="clearSelection()">✕</button>
+  <button class="btn-study" onclick="openStudyMode()">📚 Estudiar</button>
+</div>
+
+<!-- STUDY SCREEN -->
+<div id="screen-study" class="screen">
+  <div class="study-header">
+    <button class="btn-icon" onclick="closeStudyMode()">← Volver</button>
+    <h2>📚 Modo Estudio</h2>
+    <button class="btn-icon" onclick="regenerateStudy()" id="btn-regen">🔄 Regenerar</button>
+  </div>
+  <div class="study-files-chips" id="study-files-chips"></div>
+  <div class="study-tabs">
+    <button class="study-tab active" onclick="switchStudyTab('flashcards',this)">🃏 Flashcards</button>
+    <button class="study-tab" onclick="switchStudyTab('quiz',this)">🧪 Cuestionario</button>
+    <button class="study-tab" onclick="switchStudyTab('plan',this)">📅 Plan de Estudio</button>
+  </div>
+
+  <!-- Flashcards tab -->
+  <div class="study-tab-panel active" id="study-tab-flashcards">
+    <div id="leitner-header" class="leitner-header">
+      <div class="leitner-box new active-box" onclick="startLeitnerBox('new')" id="lbox-new">
+        <div class="leitner-count" id="lcount-new">0</div>
+        <div class="leitner-label">Por aprender</div>
+      </div>
+      <div class="leitner-box learning" onclick="startLeitnerBox('learning')" id="lbox-learning">
+        <div class="leitner-count" id="lcount-learning">0</div>
+        <div class="leitner-label">Repasando</div>
+      </div>
+      <div class="leitner-box learned" onclick="startLeitnerBox('learned')" id="lbox-learned">
+        <div class="leitner-count" id="lcount-learned">0</div>
+        <div class="leitner-label">Aprendidas ✓</div>
+      </div>
+    </div>
+    <div id="fc-study-area">
+      <div class="empty-state"><div class="icon">⏳</div><p>Generando flashcards…</p></div>
+    </div>
+  </div>
+
+  <!-- Quiz tab -->
+  <div class="study-tab-panel" id="study-tab-quiz">
+    <div id="quiz-study-area">
+      <div class="empty-state"><div class="icon">⏳</div><p>Generando cuestionario…</p></div>
+    </div>
+  </div>
+
+  <!-- Plan tab -->
+  <div class="study-tab-panel" id="study-tab-plan">
+    <div id="plan-study-area">
+      <div class="empty-state"><div class="icon">⏳</div><p>Generando plan de estudio…</p></div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

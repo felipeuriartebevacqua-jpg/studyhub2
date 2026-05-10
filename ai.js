@@ -1,6 +1,10 @@
-// StudyHub AI Proxy — Vercel Serverless Function
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
-const MAX_CHARS = 90000;
+// StudyHub AI Proxy — Groq (Llama 3.3 70B)
+// Gratis en console.groq.com → API Keys
+// En Vercel: Settings → Environment Variables → GROQ_API_KEY
+
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const MODEL = 'llama-3.3-70b-versatile';
+const MAX_CHARS = 80000;
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -9,9 +13,9 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Metodo no permitido' });
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return res.status(500).json({
-    error: 'GEMINI_API_KEY no configurada. Ve a Vercel → tu proyecto → Settings → Environment Variables y agregala para Production.'
+    error: 'GROQ_API_KEY no configurada. Ve a Vercel → tu proyecto → Settings → Environment Variables y agregala para Production.'
   });
 
   try {
@@ -20,35 +24,43 @@ module.exports = async function handler(req, res) {
 
     const prompt = buildPrompt(mode, text.slice(0, MAX_CHARS), term, multiFile, fileCount || 1);
 
-    const geminiRes = await fetch(GEMINI_URL + '?key=' + apiKey, {
+    const groqRes = await fetch(GROQ_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
+      },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 8192, topP: 0.9 },
-        safetySettings: [
-          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' }
-        ]
+        model: MODEL,
+        messages: [
+          {
+            role: 'system',
+            content: 'Sos un asistente educativo universitario argentino. Responde siempre en español rioplatense (usas "vos"). Sos claro, preciso y didáctico.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 8000,
+        top_p: 0.9
       })
     });
 
-    if (!geminiRes.ok) {
-      const err = await geminiRes.json().catch(() => ({}));
+    if (!groqRes.ok) {
+      const err = await groqRes.json().catch(() => ({}));
       const msg = err.error?.message || '';
-      if (msg.includes('API_KEY') || geminiRes.status === 400) {
-        return res.status(400).json({ error: 'API Key de Gemini invalida o expirada. Genera una nueva en aistudio.google.com' });
-      }
-      return res.status(geminiRes.status).json({ error: 'Error Gemini ' + geminiRes.status + ': ' + msg });
+      if (groqRes.status === 401) return res.status(401).json({ error: 'GROQ_API_KEY invalida. Verificá que sea correcta en Vercel.' });
+      if (groqRes.status === 429) return res.status(429).json({ error: 'Limite de Groq alcanzado. Esperá unos segundos y volvé a intentar.' });
+      return res.status(groqRes.status).json({ error: 'Error Groq ' + groqRes.status + ': ' + msg });
     }
 
-    const data = await geminiRes.json();
-    const result = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    if (!result) return res.status(500).json({ error: 'Gemini no devolvio respuesta. Intenta de nuevo.' });
+    const data = await groqRes.json();
+    const result = data.choices?.[0]?.message?.content || '';
+    if (!result) return res.status(500).json({ error: 'Groq no devolvio respuesta. Intentá de nuevo.' });
 
-    return res.status(200).json({ result, mode });
+    return res.status(200).json({ result, mode, model: MODEL });
 
   } catch (e) {
     return res.status(500).json({ error: 'Error interno: ' + (e.message || 'desconocido') });
@@ -56,169 +68,133 @@ module.exports = async function handler(req, res) {
 };
 
 function buildPrompt(mode, text, term, multiFile, fileCount) {
-  const base = multiFile
-    ? `Sos un asistente educativo universitario argentino. El estudiante tiene ${fileCount} archivo(s) para estudiar para un parcial. Analiza TODO el contenido y responde en espanol rioplatense (vos/tu).
+  const count = fileCount || 1;
+  const docHeader = multiFile
+    ? `El estudiante tiene ${count} archivo(s) para preparar su parcial. Cada archivo está separado por "===". Analizá TODO el contenido.\n\nCONTENIDO:\n"""\n${text}\n"""\n\n`
+    : `Analizá el siguiente texto académico.\n\nTEXTO:\n"""\n${text}\n"""\n\n`;
 
-CONTENIDO DE LOS ARCHIVOS:
-"""
-${text}
-"""
-
-`
-    : `Sos un asistente educativo universitario argentino. Analiza el siguiente texto academico y responde en espanol rioplatense (vos/tu).
-
-TEXTO:
-"""
-${text}
-"""
-
-`;
-
-  const nCards = Math.min((fileCount || 1) * 8, 20);
-  const nQuiz = Math.min((fileCount || 1) * 5, 14);
+  const nCards = Math.min(count * 8, 20);
+  const nQuiz  = Math.min(count * 5, 14);
 
   const prompts = {
-    resumen: base + `Tarea: Genera un RESUMEN ACADEMICO COMPLETO Y DETALLADO.
 
-REQUISITOS OBLIGATORIOS:
-- El resumen debe ser EXTENSO (minimo 600 palabras)
-- Cubre TODOS los temas importantes del texto
-- Usa lenguaje academico claro
-- Incluye ejemplos y explicaciones cuando el texto los mencione
+    resumen: docHeader +
+`Generá un RESUMEN ACADÉMICO COMPLETO Y DETALLADO (mínimo 600 palabras).
 
-Formato EXACTO a usar:
+Usá este formato exacto:
 
-# [Titulo del tema principal]
+# [Título del tema]
 
-## Introduccion y Contexto
-[Parrafo explicando el contexto general del tema - 3-4 oraciones]
+## Introducción y Contexto
+[3-4 oraciones sobre el contexto general]
 
 ## Temas Principales
 
 ### [Tema 1]
-[Explicacion detallada de 3-5 oraciones con conceptos clave en **negrita**]
+[Explicación de 4-5 oraciones con **conceptos clave en negrita**]
 
 ### [Tema 2]
-[Explicacion detallada de 3-5 oraciones]
+[Ídem...]
 
-[Continua con todos los temas importantes...]
+[Seguí con TODOS los temas importantes del texto]
 
 ## Conceptos Clave
-- **[Concepto 1]:** definicion clara
-- **[Concepto 2]:** definicion clara
-[Minimo 8 conceptos]
+- **[Concepto]:** definición clara y completa
+[Mínimo 8 conceptos]
 
-## Conclusion
-[Sintesis final de 3-4 oraciones explicando la importancia del tema]`,
+## Conclusión
+[3-4 oraciones de síntesis sobre la importancia del tema]`,
 
-    flashcards: base + `Tarea: Genera exactamente ${nCards} flashcards de estudio de alta calidad para preparar un parcial.
+    flashcards: docHeader +
+`Generá exactamente ${nCards} flashcards de alta calidad para preparar un parcial.
 
-REGLAS ESTRICTAS:
-- La PREGUNTA debe ser especifica, clara y de nivel universitario
-- La RESPUESTA debe ser COMPLETA y EDUCATIVA (minimo 2-3 oraciones, no solo una palabra)
-- Cubre los conceptos MAS IMPORTANTES del texto
-- Varia los tipos: definiciones, procesos, comparaciones, causas/efectos, ejemplos
-- NO repitas conceptos similares
-${multiFile ? '- Distribuye las cards entre TODOS los archivos proporcionalmente
-' : ''}
-Responde UNICAMENTE con JSON valido, sin texto adicional ni backticks:
-[
-  {"front": "pregunta clara especifica", "back": "respuesta completa y educativa de 2-3 oraciones"},
-  ...
-]`,
+REGLAS:
+- Pregunta clara y específica de nivel universitario
+- Respuesta completa de 2-4 oraciones (NO una sola palabra)
+- Cubrí los conceptos MÁS importantes
+- Variá los tipos: definiciones, procesos, comparaciones, causas/efectos
+${multiFile ? '- Distribuí las cards entre TODOS los archivos\n' : ''}
+Respondé ÚNICAMENTE con JSON válido, sin texto ni backticks:
+[{"front": "pregunta específica", "back": "respuesta completa de 2-4 oraciones"}, ...]`,
 
-    quiz: base + `Tarea: Genera ${nQuiz} preguntas de opcion multiple de nivel universitario para un parcial.
+    quiz: docHeader +
+`Generá ${nQuiz} preguntas de opción múltiple de nivel universitario.
 
 REGLAS:
 - Basate ESTRICTAMENTE en el contenido del texto
-- Las 4 opciones deben ser plausibles y relevantes (no poner respuestas obviamente incorrectas)
-- Una sola respuesta correcta
-- Incluye explicacion de por que es correcta (2-3 oraciones)
-- Varia la dificultad: algunas directas, algunas que requieren razonamiento
-${multiFile ? '- Cubre contenido de TODOS los archivos
-' : ''}
-Responde UNICAMENTE con JSON valido:
-[
-  {
-    "q": "pregunta completa",
-    "opts": ["opcion A", "opcion B", "opcion C", "opcion D"],
-    "ans": 0,
-    "explanation": "La respuesta correcta es A porque... [explicacion de 2-3 oraciones]"
-  }
-]`,
+- Las 4 opciones deben ser plausibles
+- Una sola correcta
+- Explicación de 2-3 oraciones de por qué es correcta
+${multiFile ? '- Cubrí contenido de TODOS los archivos\n' : ''}
+Respondé ÚNICAMENTE con JSON válido:
+[{"q": "pregunta", "opts": ["A","B","C","D"], "ans": 0, "explanation": "Porque..."}]`,
 
-    conceptos: base + `Tarea: Extrae los 15 conceptos mas importantes del texto para estudiar.
+    conceptos: docHeader +
+`Extraé los 15 conceptos más importantes para estudiar el parcial.
 
 REGLAS:
-- Prioriza terminos tecnicos, teorias, autores, y definiciones propias de la materia
-- El contexto debe EXPLICAR el concepto en lenguaje claro (no copiar el texto)
-- Ordenados de mayor a menor importancia para el parcial
+- Priorizá términos técnicos, teorías y definiciones propias de la materia
+- El contexto debe EXPLICAR el concepto claramente (no copiar el texto)
+- Ordenados de mayor a menor importancia
 
-Responde UNICAMENTE con JSON valido:
-[{"term": "Nombre del Concepto", "context": "Explicacion clara de 2-3 oraciones sobre que es y por que importa para la materia"}, ...]`,
+Respondé ÚNICAMENTE con JSON válido:
+[{"term": "Nombre del Concepto", "context": "Explicación de 2-3 oraciones"}, ...]`,
 
-    plan: base + `Tarea: Crea un PLAN DE ESTUDIO DETALLADO Y PRACTICO para preparar el parcial con este material.
+    plan: docHeader +
+`Creá un PLAN DE ESTUDIO DETALLADO Y PRÁCTICO para preparar el parcial.
 
-El plan debe ser:
-- Especifico para el contenido real del texto (menciona temas concretos)
-- Realista en tiempos (sesiones de 1-2 horas)
+Requisitos:
+- Específico para el contenido real del texto (mencioná temas concretos)
+- Sesiones de 1-2 horas por día
+- Actividades concretas, no genéricas
 - Progresivo (de menor a mayor dificultad)
-- Con actividades concretas (no genericas)
 
 Formato:
-## Dia 1 — [Tema principal a cubrir]
-**Duracion:** X horas
-**Objetivo:** [que vas a lograr]
+## Día 1 — [Tema específico a cubrir]
+**Duración:** X horas
+**Objetivo:** [qué vas a lograr]
 **Actividades:**
-- [ ] [actividad especifica basada en el contenido]
+- [ ] [actividad específica basada en el contenido real]
 - [ ] [actividad]
 - [ ] [actividad]
 
-[Continua para cada dia necesario, tipicamente 3-5 dias]
+[Continuá para 3-5 días según la cantidad de material]
 
-## Repaso Final (dia previo al parcial)
-**Duracion:** 1-2 horas
-- [ ] [actividad de repaso especifica]
+## Repaso Final (día previo al parcial)
 - [ ] Repasar flashcards de conceptos clave
-- [ ] Hacer el quiz de practica
+- [ ] [actividad específica]
+- [ ] Hacer el quiz de práctica
 
-## Tips especificos para este tema
+## Tips para este tema
 [2-3 tips concretos basados en el contenido]`,
 
-    chat: base + `El estudiante te hace la siguiente pregunta:
-"${term || 'Contame sobre el tema principal'}"
+    chat: docHeader +
+`El estudiante pregunta: "${term || '¿De qué trata el texto?'}"
 
-INSTRUCCIONES:
-- Responde basandote en el contenido del texto
-- Si la pregunta no esta directamente en el texto, usa el contexto del texto para responder lo mejor posible
-- Si la pregunta es completamente ajena al texto, respondela igualmente con tu conocimiento general
-- Se claro, directo y educativo
-- Usa ejemplos del texto cuando sea relevante
-- Longitud apropiada a la complejidad de la pregunta (puede ser corta o larga)`,
+Respondé de forma clara y educativa. Si la respuesta está en el texto, basate en él. Si no, respondé con tu conocimiento general. Sé directo y útil.`,
 
-    drill: base + `El estudiante quiere profundizar en el concepto: "${term}"
+    drill: docHeader +
+`El estudiante quiere profundizar en: "${term}"
 
-Genera una explicacion PROFUNDA, DIDACTICA y COMPLETA sobre "${term}" basada en el texto.
+Generá una explicación PROFUNDA Y DIDÁCTICA sobre este concepto.
 
-Estructura tu respuesta asi:
-
-## ¿Que es ${term}?
-[Definicion clara y completa - 3-4 oraciones]
+## ¿Qué es ${term}?
+[Definición completa - 3-4 oraciones]
 
 ## Contexto y Relevancia
-[Por que es importante en este tema - 2-3 oraciones]
+[Por qué es importante en este tema]
 
-## Explicacion Detallada
-[Desarrollo completo del concepto con todos los aspectos que menciona el texto]
+## Explicación Detallada
+[Desarrollo completo con todos los aspectos del texto]
 
 ## Ejemplos
 [Ejemplos concretos del texto o que ilustren el concepto]
 
-## Relacion con otros conceptos
-[Como se relaciona con otros temas del texto]
+## Relación con otros conceptos del texto
+[Cómo se conecta con otros temas]
 
-## Para recordar
-[2-3 puntos clave para el parcial]`
+## Para recordar en el parcial
+[3 puntos clave]`
   };
 
   return prompts[mode] || prompts.chat;

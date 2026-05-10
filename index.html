@@ -1055,9 +1055,9 @@ function openAiModal(rawUrl, name, filename) {
   aiState={engine:null, rawUrl, filename, modName:name, mode:'resumen', loading:false, extractedText:null};
   document.getElementById('ai-modal-title').textContent='✨ '+name;
   document.getElementById('ai-modal-sub').textContent=filename;
-  document.getElementById('ai-output').innerHTML='<div class="ai-placeholder"><div class="big-icon">✨</div><p>Powered by Gemini — hacé clic en <strong>Generar</strong>.</p></div>';
+  document.getElementById('ai-output').innerHTML='<div class="ai-placeholder"><div class="big-icon">✨</div><p>Powered by Groq (Llama 3.3 70B) — hacé clic en <strong>Generar</strong>.</p></div>';
   const onVercel = location.protocol === 'https:' || (location.protocol === 'http:' && location.hostname !== 'localhost' && !location.hostname.startsWith('127.'));
-  document.getElementById('ai-status-text').textContent = onVercel ? '🤖 Gemini AI (servidor)' : '🔌 IA local (abrí desde Vercel para usar Gemini)';
+  document.getElementById('ai-status-text').textContent = onVercel ? '🤖 Groq AI (servidor)' : '🔌 IA local (abrí desde Vercel para usar Gemini)';
   document.getElementById('ai-status-icon').textContent = onVercel ? '🤖' : '🔌';
   document.getElementById('ai-chat-input-row').style.display='none';
   document.getElementById('ai-run-row').style.display='flex';
@@ -1129,12 +1129,12 @@ async function callAiProxy(mode, term) {
       const data = await res.json().catch(()=>({}));
       if(!res.ok) throw new Error(data.error || 'Error servidor '+res.status);
       if(data.error) throw new Error(data.error);
-      document.getElementById('ai-status-text').textContent='✅ Gemini AI';
+      document.getElementById('ai-status-text').textContent='✅ Groq AI (Llama 3.3)';
       return data.result || '';
     } catch(e) {
       // Fall through to local AI with warning
       console.warn('Gemini proxy failed:', e.message, '— using local AI');
-      document.getElementById('ai-status-text').textContent='⚠ Gemini no disponible: '+e.message.slice(0,60);
+      document.getElementById('ai-status-text').textContent='⚠ Groq no disponible: '+e.message.slice(0,60);
     }
   }
 
@@ -1172,7 +1172,7 @@ async function runAi() {
     const result = await callAiProxy(mode);
 
     if(mode==='resumen'){
-      out.innerHTML='<div class="ai-section"><div class="ai-section-title">📄 Resumen — Gemini AI</div><div class="ai-text">'+renderMarkdown(result)+'</div></div>';
+      out.innerHTML='<div class="ai-section"><div class="ai-section-title">📄 Resumen — Groq AI</div><div class="ai-text">'+renderMarkdown(result)+'</div></div>';
 
     } else if(mode==='flashcards'){
       let cards=[];
@@ -1536,7 +1536,7 @@ async function callStudyProxy(mode, combinedText, fileCount) {
       body: JSON.stringify({ text: combinedText.slice(0,80000), mode, multiFile:true, fileCount })
     });
     const d = await res.json().catch(()=>({}));
-    if(!res.ok) throw new Error(d.error || 'Error '+res.status+'. Verificá que GEMINI_API_KEY esté en Environment Variables del proyecto correcto en Vercel.');
+    if(!res.ok) throw new Error(d.error || 'Error '+res.status+'. Verificá que GROQ_API_KEY esté en Environment Variables del proyecto correcto en Vercel.');
     return d.result || '';
   }
   // Local fallback

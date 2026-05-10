@@ -1172,7 +1172,8 @@ async function runAi() {
     const result = await callAiProxy(mode);
 
     if(mode==='resumen'){
-      out.innerHTML='<div class="ai-section"><div class="ai-section-title">📄 Resumen — Groq AI</div><div class="ai-text">'+renderMarkdown(result)+'</div></div>';
+      const aiLabel = document.getElementById('ai-status-text').textContent.includes('local') ? '🔌 IA Local' : '🤖 Groq AI';
+      out.innerHTML='<div class="ai-section"><div class="ai-section-title">📄 Resumen — '+aiLabel+'</div><div class="ai-text">'+renderMarkdown(result)+'</div></div>';
 
     } else if(mode==='flashcards'){
       let cards=[];

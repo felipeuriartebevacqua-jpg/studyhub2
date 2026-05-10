@@ -1074,8 +1074,8 @@ function selectMode(btn){
   const isChat=aiState.mode==='chat';
   document.getElementById('ai-chat-input-row').style.display=isChat?'flex':'none';
   document.getElementById('ai-run-row').style.display=isChat?'none':'flex';
-  if(isChat && aiState.engine) {
-    document.getElementById('ai-output').innerHTML='<div id="chat-history" style="display:flex;flex-direction:column;gap:0.75rem;"></div>';
+  if(isChat){
+    document.getElementById('ai-output').innerHTML='<div id="chat-history" style="display:flex;flex-direction:column;gap:0.75rem;"><div style="text-align:center;padding:1.5rem;color:var(--muted);font-size:0.85rem;">Preguntame cualquier cosa sobre el documento ↓</div></div>';
   }
 }
 
@@ -1109,45 +1109,33 @@ async function extractDocumentText() {
 }
 
 function isVercelDeploy() {
-  const proto = location.protocol;
-  const host = location.hostname;
-  // Running locally from file or localhost without /api
-  return proto === 'https:' || (proto === 'http:' && host !== 'localhost' && !host.startsWith('127.'));
+  // file:// is definitely local. Everything else might have /api/ai
+  return location.protocol !== 'file:';
 }
 
 async function callAiProxy(mode, term) {
   const text = await extractDocumentText();
 
-  // ── If on Vercel: use Gemini via serverless function ──
+  // ── Try Gemini proxy (works when deployed, skipped for file://) ──
   if (isVercelDeploy()) {
     const body = { text, mode };
     if(term) body.term = term;
-    // Try relative URL first, then absolute (handles some Vercel routing issues)
-    const urls = ['/api/ai', location.origin + '/api/ai'];
-    let lastErr = '';
-    for (const apiUrl of urls) {
-      try {
-        const res = await fetch(apiUrl, {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify(body)
-        });
-        if(res.status === 404) { lastErr = 'Función /api/ai no encontrada (404)'; continue; }
-        if(!res.ok) {
-          const err = await res.json().catch(()=>({}));
-          throw new Error(err.error || 'Error '+res.status+': '+JSON.stringify(err));
-        }
-        const data = await res.json();
-        if(data.error) throw new Error(data.error);
-        return data.result || '';
-      } catch(e) {
-        if(e.message.includes('404')) { lastErr = e.message; continue; }
-        throw e;
-      }
+    try {
+      const res = await fetch('/api/ai', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+      });
+      const data = await res.json().catch(()=>({}));
+      if(!res.ok) throw new Error(data.error || 'Error servidor '+res.status);
+      if(data.error) throw new Error(data.error);
+      document.getElementById('ai-status-text').textContent='✅ Gemini AI';
+      return data.result || '';
+    } catch(e) {
+      // Fall through to local AI with warning
+      console.warn('Gemini proxy failed:', e.message, '— using local AI');
+      document.getElementById('ai-status-text').textContent='⚠ Gemini no disponible: '+e.message.slice(0,60);
     }
-    // Both URLs failed — fallback to local AI
-    console.warn('Gemini proxy not available, falling back to local AI. Last error:', lastErr);
-    document.getElementById('ai-status-text').textContent = '⚠ Gemini no disponible — usando IA local';
   }
 
   // ── If local (file:// or localhost): use local AI engine ──
@@ -1249,13 +1237,17 @@ async function sendChat(){
   input.value='';
   let history=document.getElementById('chat-history');
   if(!history){document.getElementById('ai-output').innerHTML='<div id="chat-history" style="display:flex;flex-direction:column;gap:0.75rem;"></div>';history=document.getElementById('chat-history');}
-  history.innerHTML+=`<div style="text-align:right;"><span style="background:rgba(159,122,234,0.15);border:1px solid rgba(159,122,234,0.25);border-radius:12px 12px 4px 12px;padding:0.55rem 0.85rem;font-size:0.85rem;display:inline-block;max-width:80%;">${escHtml(question)}</span></div>`;
+  history.innerHTML+='<div style="text-align:right;"><span style="background:rgba(159,122,234,0.15);border:1px solid rgba(159,122,234,0.25);border-radius:12px 12px 4px 12px;padding:0.55rem 0.85rem;font-size:0.85rem;display:inline-block;max-width:80%;">'+escHtml(question)+'</span></div>';
   const thinkId='think_'+Date.now();
-  history.innerHTML+=`<div id="${thinkId}" style="display:flex;align-items:center;gap:0.5rem;color:var(--muted);font-size:0.82rem;"><div class="spinner" style="width:16px;height:16px;border-width:2px;flex-shrink:0;"></div>Buscando en el documento…</div>`;
+  history.innerHTML+='<div id="'+thinkId+'" style="display:flex;align-items:center;gap:0.5rem;color:var(--muted);font-size:0.82rem;"><div class="spinner" style="width:16px;height:16px;border-width:2px;flex-shrink:0;"></div>Analizando…</div>';
   history.parentElement.scrollTop=history.parentElement.scrollHeight;
   try {
+    // Extract text first if not done yet
+    if(!aiState.extractedText && aiState.rawUrl) {
+      await extractDocumentText();
+    }
     const answer = await callAiProxy('chat', question);
-    document.getElementById(thinkId).outerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:4px 12px 12px 12px;padding:0.65rem 0.9rem;font-size:0.85rem;max-width:90%;line-height:1.65;">${escHtml(answer).replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>')}</div>`;
+    document.getElementById(thinkId).outerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:4px 12px 12px 12px;padding:0.65rem 0.9rem;font-size:0.85rem;max-width:90%;line-height:1.65;">'+renderMarkdown(answer)+'</div>';
   } catch(e){
     document.getElementById(thinkId).outerHTML=`<div style="color:var(--error);font-size:0.82rem;">Error: ${escHtml(e.message)}</div>`;
   }
@@ -1538,14 +1530,14 @@ async function generateStudyContent() {
 }
 
 async function callStudyProxy(mode, combinedText, fileCount) {
-  const isVercel = isVercelDeploy();
-  if(isVercel) {
+  if(isVercelDeploy()) {
     const res = await fetch('/api/ai', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ text: combinedText, mode, multiFile:true, fileCount })
+      body: JSON.stringify({ text: combinedText.slice(0,80000), mode, multiFile:true, fileCount })
     });
-    if(!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e.error||'Error '+res.status); }
-    const d = await res.json(); return d.result || '';
+    const d = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(d.error || 'Error '+res.status+'. Verificá que GEMINI_API_KEY esté en Environment Variables del proyecto correcto en Vercel.');
+    return d.result || '';
   }
   // Local fallback
   const engine = new StudyAI(); engine.loadText(combinedText);
